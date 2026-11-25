@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  SHIPPED
+  DELIVERED
+  RETURNED
+  CANCELLED
+}
+
+enum CustomerBadge {
+  NEW
+  VIP
+  WARNING
+}
+
+model Governorate {
+  id           String     @id @default(cuid())
+  name         String     @unique
+  shippingFee  Float      @default(70)
+  customers    Customer[]
+  orders       Order[]
+}
+
+model Customer {
+  id            String        @id @default(cuid())
+  name          String
+  phone         String        @unique
+  altPhone      String?
+  governorateId String
+  governorate   Governorate   @relation(fields: [governorateId], references: [id])
+  area          String
+  address       String
+  landmark      String?
+  notes         String?
+  badge         CustomerBadge @default(NEW)
+  orders        Order[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  name        String
+  sku         String?          @unique
+  imageUrl    String
+  costPrice   Float
+  sellPrice   Float
+  variants    ProductVariant[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model ProductVariant {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color      String
+  size       String
+  stock      Int         @default(0)
+  orderItems OrderItem[]
+
+  @@unique([productId, color, size])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNo       Int         @unique @default(autoincrement())
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  governorateId String
+  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  fullAddress   String
+  status        OrderStatus @default(NEW)
+  itemsTotal    Float
+  discount      Float       @default(0)
+  shippingFee   Float
+  grandTotal    Float
+  totalCost     Float
+  notes         String?
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id               String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+  qty              Int
+  unitPrice        Float
+  unitCost         Float
+}
